@@ -7,3 +7,6 @@ Author: Kieran Campbell <kieranrcampbell@gmail.com>
 Maintainer: Kieran Campbell <kieranrcampbell@gmail.com>
 Description: More about what it does (maybe more than one line)
 License: MIT
+Imports:
+  ggplot2,
+  igraph
