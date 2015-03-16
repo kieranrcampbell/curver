@@ -1,2 +1,1 @@
-# curver
-Curve reconstruction from unorganised points
+Curve reconstruction from noisy data
