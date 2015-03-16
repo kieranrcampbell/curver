@@ -10,11 +10,13 @@
 #' Curve reconstruction from noisy points
 reconstruct <- function(X, h = 10, niter = 5) {
   W <- weight_matrix(X, h)
-  Y <- matrix(NA, nrow=nrow(X), ncol=ncol(X))
+  Y <- X
 
   for(i in 1:niter) {
-    
+      Y <- t(sapply(1:dim(Y)[1], point_transformation, X, W))
   }
+  
+  return( Y )
 }
 
 point_transformation <- function(index, X, W) {
