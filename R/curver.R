@@ -80,27 +80,7 @@ plot_transformation <- function(X, Y) {
     theme_bw() + geom_segment(data=df_seg, aes(x=x, xend=xend, y=y, yend=yend), alpha=0.5, linetype=2)
 }
 
-order_points <- function(Y) {
-  D <- as.matrix(dist(Y))
-  g <- graph.adjacency(D, weighted=TRUE, mode='undirected')
-  g_mst <- minimum.spanning.tree(g)
-  A <- as.matrix(get.adjacency(g_mst))
-  endpoints <- which(rowSums(A) == 1)
-  ordering <- get.shortest.paths(g_mst, from=endpoints[1], to=endpoints[2])
-  Z <- Y[ordering$vpath[[1]],]
-  
-  ## now we have the ordering want to work out the arc-length
-  n <- dim(Z)[1]
-  Z_start <- Z[1:n-1,]
-  Z_end <- Z[2:n,]
-  Z_diff <- Z_end - Z_start
-  pst <- sqrt(rowSums(Z_diff^2))
-  pseudotime <- c(0, cumsum(pst))
-  return(data.frame(cbind(Z, pseudotime)))
-}
 
-plot_pseudotime <- function(Z) {
-  ggplot(Z, aes(x=x, y=y, color=pseudotime)) + geom_point() +
-    theme_bw()
-}
+
+
 
