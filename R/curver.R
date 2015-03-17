@@ -8,8 +8,11 @@
 # Author: Kieran Campbell, University of Oxford <kieranrcampbell@gmail.com>
 
 #' Curve reconstruction from noisy points
-reconstruct <- function(X, h = 10, niter = 5) {
-  W <- weight_matrix(X, h)
+reconstruct <- function(X, h = 0.02, niter = 5, method=c('dist','mst','corr')) {
+  names(X) <- c('x','y')
+  method <- match.arg(method)
+  
+  W <- weight_matrix(X, h, method)
   Y <- X
 
   for(i in 1:niter) {
@@ -52,10 +55,15 @@ point_transformation <- function(index, X, W) {
   return( t(R_inv %*% t(z)))
 }
 
-weight_matrix <- function(X, h) {
+weight_matrix <- function(X, h, method) {
   r <- as.matrix(dist(X))
   w <- 2 * r * r * r / h^3 - 3 * r * r / h^2 + 1  
-  w <- w * 1 * (r < h)
+  
+  if(method == 'dist'){
+    w <- w * 1 * (r < h)
+  } else if(method == 'mst') {
+    w <- w * call_collect(X, h)
+  }
 }
 
 percentile_r <- function(X) {
@@ -80,7 +88,49 @@ plot_transformation <- function(X, Y) {
     theme_bw() + geom_segment(data=df_seg, aes(x=x, xend=xend, y=y, yend=yend), alpha=0.5, linetype=2)
 }
 
+#' Improved moving least-squares using minimum spanning trees
+#' 
+#' 
+call_collect <- function(X, h=0.02) {
+  D <- as.matrix(dist(X))
+  N_cells <- dim(X)[1]
+  g <- graph.adjacency(D, mode='undirected', weighted=TRUE)
+  mst <- minimum.spanning.tree(g)
+  
+  ## can plot with
+  ## plot(mst, vertex.size=1, vertex.label=NA, layout=as.matrix(X))
+  
+  ## only use vertices less than h
+  use_vertices <- D < h
+  uv <- apply(use_vertices, 1, which)
+  
+  W <- matrix(0, ncol=N_cells, nrow=N_cells)
+  for(i in 1:N_cells) {
+    A <- collect(i, i, mst = mst, uv = uv)
+    W[i,A] <- 1 
+  }
+  
+  return( W )
+}
 
+collect <- function(P, P_star, mst, uv) {
+  env <- new.env()
+  env$A <- NULL
+  
+  collect1 <- function(P, P_star, mst, uv, env) {
+    env$A <- c(P, env$A)
+    edges  <- neighbors(mst, P)
+    for(P_j in edges) {
+      if( (!(P_j %in% env$A)) && (P_j %in% uv[[P_star]]) ) {
+        ## P_j qualifies to be in A and its neighbours explored
+        collect1(P_j, P_star, mst, uv, env)
+      }
+    }
+  }
+  
+  collect1(P, P_star, mst, uv, env)
+  return( env$A )
+}
 
 
 
