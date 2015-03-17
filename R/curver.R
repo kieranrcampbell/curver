@@ -8,16 +8,12 @@
 # Author: Kieran Campbell, University of Oxford <kieranrcampbell@gmail.com>
 
 #' Curve reconstruction from noisy points
-reconstruct <- function(X, h = 0.02, niter = 5, method=c('dist','mst','corr')) {
+reconstruct <- function(X, h = 0.02, method=c('dist','mst','corr')) {
   names(X) <- c('x','y')
   method <- match.arg(method)
   
   W <- weight_matrix(X, h, method)
-  Y <- X
-
-  for(i in 1:niter) {
-      Y <- t(sapply(1:dim(Y)[1], point_transformation, X, W))
-  }
+  Y <- data.frame(t(sapply(1:dim(Y)[1], point_transformation, X, W)))
   
   colnames(Y) <- colnames(X)
   return( Y )
@@ -64,6 +60,7 @@ weight_matrix <- function(X, h, method) {
   } else if(method == 'mst') {
     w <- w * call_collect(X, h)
   }
+  return( w )
 }
 
 percentile_r <- function(X) {
@@ -110,6 +107,7 @@ call_collect <- function(X, h=0.02) {
     W[i,A] <- 1 
   }
   
+  print('returning from call_collect')
   return( W )
 }
 
