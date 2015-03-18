@@ -110,7 +110,9 @@ plot_transformation <- function(X, Y) {
 #' Improved moving least-squares using minimum spanning trees
 #' 
 #' 
-call_collect <- function(X, h=0.02) {
+call_collect <- function(X, h=0.02, collect = c(1,2), ...) {
+  collect <- match.arg(collect)
+  
   D <- as.matrix(dist(X))
   N_cells <- dim(X)[1]
   g <- graph.adjacency(D, mode='undirected', weighted=TRUE)
@@ -119,17 +121,25 @@ call_collect <- function(X, h=0.02) {
   ## can plot with
   ## plot(mst, vertex.size=1, vertex.label=NA, layout=as.matrix(X))
   
-  ## only use vertices less than h
-  use_vertices <- D < h
-  uv <- apply(use_vertices, 1, which)
-  
   W <- matrix(0, ncol=N_cells, nrow=N_cells)
-  for(i in 1:N_cells) {
-    A <- collect(i, i, mst = mst, uv = uv)
-    W[i,A] <- 1 
+  ## only use vertices less than h
+  
+  if(collect == 1) {
+    use_vertices <- D < h
+    uv <- apply(use_vertices, 1, which)
+    
+    for(i in 1:N_cells) {
+      A <- collect(i, i, mst = mst, uv = uv)
+      W[i,A] <- 1 
+    }
+  } else {
+    for(i in 1:N_cells) {
+      d <- D[i,]
+      ## ... should include h_0, rho_0 and epsilon
+      A <- collect2(X, d, i, i, mst, ...)
+    }
   }
   
-  print('returning from call_collect')
   return( W )
 }
 
@@ -152,5 +162,22 @@ collect <- function(P, P_star, mst, uv) {
   return( env$A )
 }
 
+#' Implements the collect2 algorithm
+#'
+#' @param d Distance from P_star to all other points
+collect2 <- function(X, d, P, P_star, mst, h_0, rho_0, epsilon) {
+  h <- h_0
+  A <- NULL
+  repeat {
+    uv <- which(d < h)
+    A <- collect(P, P_star, mst, uv)
+    if(cor(X[A,]) > rho_0) {
+      break
+    } else {
+      h <- h + epsilon
+    }
+  }
+  return( A )
+}
 
 
