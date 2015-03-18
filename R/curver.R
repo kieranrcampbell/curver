@@ -8,13 +8,17 @@
 # Author: Kieran Campbell, University of Oxford <kieranrcampbell@gmail.com>
 
 #' Curve reconstruction from noisy points
-reconstruct <- function(X, h = 0.02, method=c('dist','mst','corr')) {
+reconstruct <- function(X, h = 0.02, method=c('dist','mst','corr'), 
+                        niter = 1, use_weight_checker = TRUE) {
   names(X) <- c('x','y')
   method <- match.arg(method)
   
-  W <- weight_matrix(X, h, method)
-  Y <- data.frame(t(sapply(1:dim(Y)[1], point_transformation, X, W)))
-  
+  W <- weight_matrix(X, h, method, use_weight_checker)
+  Y <- X
+  for(i in 1:niter) {
+    Y <- data.frame(t(sapply(1:dim(Y)[1], point_transformation, Y, W)))
+  }
+    
   colnames(Y) <- colnames(X)
   return( Y )
 }
@@ -51,17 +55,35 @@ point_transformation <- function(index, X, W) {
   return( t(R_inv %*% t(z)))
 }
 
-weight_matrix <- function(X, h, method) {
+#' Construct the weight matrix using X, h and method
+weight_matrix <- function(X, h, method, use_weight_checker) {
   r <- as.matrix(dist(X))
   w <- 2 * r * r * r / h^3 - 3 * r * r / h^2 + 1  
   
+  w_all <- w
   if(method == 'dist'){
     w <- w * 1 * (r < h)
   } else if(method == 'mst') {
     w <- w * call_collect(X, h)
   }
+
+#   if(use_weight_checker) w <- weight_matrix_checker(w, w_all)
   return( w )
 }
+
+#' Since regressions are performed using nearest neighbours suggested by W, 
+#' we need to make sure there are enough so W has more than one point and something
+#' relatively stable. As a result, we choose the value 5 to be the minimum number of
+#' neighbours a point is allowed 
+# weight_matrix_checker <- function(w, w_all, nn = 5) {
+#   w_logical <- ceiling(w)
+#   if(any(rowSums(w_logical) < nn)) {
+#     warning('Some rows have less than 5 nearest neighbours, so increasing all to 5.\nConsider using a larger value for H')
+#     problem_rows <- which(rowSums(w_logical) < nn)
+#     
+#   }
+#   return( w )
+# }
 
 percentile_r <- function(X) {
   r <- as.vector(dist(X))
